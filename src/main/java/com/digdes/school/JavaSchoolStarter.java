@@ -272,6 +272,15 @@ public class JavaSchoolStarter {
 
     private List<String> extractColumnNames(String request) {
         String regex = "('[A-Za-z']+)";
+        return getItems(request, regex);
+    }
+
+    private List<String> extractSearchItems(String request){
+        String regex = "(%[A-Za-zА-Яа-я]*.|[A-Za-zА-Яа-я]*%)";
+        return getItems(request, regex);
+    }
+
+    private List<String> getItems(String request, String regex) {
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(request);
 
@@ -280,7 +289,5 @@ public class JavaSchoolStarter {
             tokensColumnNames.add(matcher.group());
         }
         return tokensColumnNames;
-    }
-    String toExtractlike = "(%[A-Za-zА-Яа-я]*|[A-Za-zА-Яа-я]*%)|(%[A-Za-zА-Яа-я]*%)";
     }
 }

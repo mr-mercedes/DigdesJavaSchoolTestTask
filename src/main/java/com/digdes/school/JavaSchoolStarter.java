@@ -43,16 +43,7 @@ public class JavaSchoolStarter {
 
     private void createRow(List<String> tokens) {
         clearOldData();
-        for (int i = 2; i < tokens.size(); i++) {
-            String item = tokens.get(i);
-            switch (item.toLowerCase()) {
-                case "lastname" -> lastname = tokens.get(i + 2);
-                case "id" -> id = Long.parseLong(tokens.get(i + 2));
-                case "age" -> age = Long.parseLong(tokens.get(i + 2));
-                case "cost" -> this.cost = Double.parseDouble(tokens.get(i + 2));
-                case "active" -> this.active = Boolean.valueOf(tokens.get(i + 2));
-            }
-        }
+        updateCol(tokens);
     }
 
     private Map<String, Object> fillRow() {
@@ -87,63 +78,203 @@ public class JavaSchoolStarter {
         }
     }
 
+    private void updateRow(List<String> tokens, Map<String, Object> row) {
+        clearOldData();
+        extractOldCol(row);
+        updateCol(tokens);
+    }
+
     private void updateWithWhere(List<String> tokens) {
+        List<List<Object>> updateKeys = extractActionKey(tokens);
+
+        if (!tokens.contains("AND") && !tokens.contains("OR")) {
+            simpleUpdate(updateKeys, tokens);
+        } else if (tokens.contains("AND")) {
+            andUpdate(updateKeys, tokens);
+        } else if (tokens.contains("OR")) {
+            orUpdate(updateKeys, tokens);
+        }
+    }
+
+    private void orUpdate(List<List<Object>> updateKeys, List<String> tokens) {
+        boolean flag = false;
         int index = 0;
-        Map<String, Object> updateKey = extractActionKey(tokens);
         while (table.size() > index) {
             Map<String, Object> row = table.get(index);
-            for (Map.Entry<String, Object> map : updateKey.entrySet()) {
-                String key = map.getKey();
-                Object value = map.getValue();
-                if (row.containsKey(key) && Objects.equals(row.get(key), value)) {
-                    updateRow(tokens, row);
-                    Map<String, Object> updateRow = fillRow();
-                    table.remove(index);
-                    table.add(index, updateRow);
+            for (List<Object> keys : updateKeys) {
+                if (!keys.get(0).equals("AND") && !keys.get(0).equals("OR")) {
+                    Boolean compareRow = compareRow(row, keys);
+                    if (compareRow) {
+                        flag = true;
+                    }
+                    if (compareRow && flag) {
+                        flag = moveUpdate(tokens, index, row);
+                    }
                 }
             }
             index++;
         }
     }
 
-    private Map<String, Object> extractActionKey(List<String> tokens) {
-        String actionKey = null;
-        Object actionValue = null;
-//        String actionOperator = null;
-        for (int i = 2; i < tokens.size(); i++) {
-            String token = tokens.get(i);
-//            actionOperator = tokens.get(i + 2);
-//            Boolean compareOperator = compare(actionOperator);
-            if (token.equalsIgnoreCase("WHERE")) {
-                actionKey = tokens.get(i + 1);
-                switch (actionKey.toLowerCase()) {
-                    case "lastname" -> actionValue = tokens.get(i + 3);
-                    case "id", "age" -> actionValue = Long.parseLong(tokens.get(i + 3));
-                    case "cost" -> actionValue = Double.parseDouble(tokens.get(i + 3));
-                    case "active" -> actionValue = Boolean.valueOf(tokens.get(i + 3));
+    private void andUpdate(List<List<Object>> updateKeys, List<String> tokens) {
+        boolean flag = false;
+        int index = 0;
+        while (table.size() > index) {
+            Map<String, Object> row = table.get(index);
+            for (List<Object> keys : updateKeys) {
+                if (!keys.get(0).equals("AND") && !keys.get(0).equals("OR")) {
+                    if (compareRow(row, keys) && !flag) {
+                        flag = true;
+                    } else if (compareRow(row, keys) && flag) {
+                        flag = moveUpdate(tokens, index, row);
+                        index++;
+                    } else if (!compareRow(row, keys)) {
+                        index++;
+                        flag = false;
+                        break;
+                    } else {
+                        index++;
+                        flag = false;
+                    }
                 }
             }
         }
-
-        assert actionKey != null;
-        assert actionValue != null;
-        return Map.of(actionKey, actionValue);
     }
 
-//    private Boolean compare(String actionOperator) {
-//        switch (actionOperator){
-//            case "<=", ">=", "!=", "<", ">" -> {
-//
-//            }
-//            case ">="
-//        }
-//        return null;
-//    }
+    private boolean moveUpdate(List<String> tokens, int index, Map<String, Object> row) {
+        boolean flag = false;
+        updateRow(tokens, row);
+        Map<String, Object> updateRow = fillRow();
+        table.remove(index);
+        table.add(index, updateRow);
+        return flag;
+    }
 
-    private void updateRow(List<String> tokens, Map<String, Object> row) {
-        clearOldData();
-        extractOldCol(row);
-        updateCol(tokens);
+    private void simpleUpdate(List<List<Object>> updateKeys, List<String> tokens) {
+        int index = 0;
+        if (!tokens.contains("AND") && !tokens.contains("OR")) {
+            while (table.size() > index) {
+                Map<String, Object> row = table.get(index);
+                for (List<Object> keys : updateKeys) {
+                    Boolean compareRow = compareRow(row, keys);
+                    if (compareRow) {
+                        updateRow(tokens, row);
+                        Map<String, Object> updateRow = fillRow();
+                        table.remove(index);
+                        table.add(index, updateRow);
+                    }
+                }
+                index++;
+            }
+        }
+    }
+
+    private Boolean compareRow(Map<String, Object> row, List<Object> item) {
+        String key = String.valueOf(item.get(0));
+        String operator = String.valueOf(item.get(1));
+        Object value = item.get(2);
+        String rowKey;
+        Object rowValue;
+        for (Map.Entry<String, Object> map : row.entrySet()) {
+            rowKey = map.getKey();
+            rowValue = map.getValue();
+            if (key.equalsIgnoreCase(rowKey)) {
+                if (!compareOperators(operator)) {
+                    if (value.equals(rowValue) || (rowValue == null && value == "null")) {
+                        return true;
+                    }
+                }
+                return customerEquals(key, rowValue, value, operator);
+            }
+        }
+        return false;
+    }
+
+    private Boolean compareOperators(String actionOperator) {
+        switch (actionOperator) {
+            case "<=", ">=", "!=", "<", ">" -> {
+                return true;
+            }
+            case "=" -> {
+                return false;
+            }
+            default ->
+                    throw new RuntimeException("Error SQL syntax: expected operation to compare, but has: " + actionOperator);
+        }
+    }
+
+    private Boolean customerEquals(String key, Object rowValue, Object compareValue, String operator) {
+        boolean compare = false;
+
+        switch (key.toLowerCase()) {
+            case "lastname" -> compare = String.valueOf(rowValue).equalsIgnoreCase(String.valueOf(compareValue));
+            case "id", "age" -> {
+                rowValue = rowValue != null ? (Long) rowValue : 0L;
+                compareValue = compareValue != null ? (Long) compareValue : 0L;
+                switch (operator) {
+                    case "=" -> compare = (rowValue).equals(compareValue);
+                    case "<=" -> compare = (Long) rowValue <= (Long) compareValue;
+                    case ">=" -> compare = (Long) rowValue >= (Long) compareValue;
+                    case "!=" -> compare = !Objects.equals(rowValue, compareValue);
+                    case "<" -> compare = (Long) rowValue < (Long) compareValue;
+                    case ">" -> compare = (Long) rowValue > (Long) compareValue;
+                }
+            }
+            case "cost" -> {
+                rowValue = rowValue != null ? (Double) rowValue : 0.;
+                compareValue = compareValue != null ? (Double) compareValue : 0.;
+                switch (operator) {
+                    case "=" -> compare = (rowValue).equals(compareValue);
+                    case "<=" -> compare = (Double) rowValue <= (Double) compareValue;
+                    case ">=" -> compare = (Double) rowValue >= (Double) compareValue;
+                    case "!=" -> compare = !Objects.equals(rowValue, compareValue);
+                    case "<" -> compare = (Double) rowValue < (Double) compareValue;
+                    case ">" -> compare = (Double) rowValue > (Double) compareValue;
+                }
+            }
+            case "active" -> {
+                if (compareValue.equals("null") || rowValue.equals("null")) {
+                    return compareValue.equals("null") && rowValue == "null";
+                }
+                compare = Boolean.compare((Boolean) rowValue, (Boolean) compareValue) == 0;
+            }
+        }
+        return compare;
+    }
+
+
+    private List<List<Object>> extractActionKey(List<String> tokens) {
+        List<List<Object>> extractKeys = new ArrayList<>();
+        for (int i = 1; i < tokens.size(); i++) {
+            String token = tokens.get(i);
+            if (token.equalsIgnoreCase("WHERE")) {
+                getKeys(tokens, extractKeys, i, token);
+            }
+            if (token.equalsIgnoreCase("AND")) {
+                getKeys(tokens, extractKeys, i, token);
+            }
+            if (token.equalsIgnoreCase("OR")) {
+                getKeys(tokens, extractKeys, i, token);
+            }
+        }
+        return extractKeys;
+    }
+
+    private void getKeys(List<String> tokens, List<List<Object>> keys, int index, String keyWord) {
+        if (!keyWord.equalsIgnoreCase("WHERE")) keys.add(List.of(keyWord));
+        String actionKey;
+        Object actionValue = null;
+        String actionOperator;
+        actionKey = tokens.get(index + 1);
+        switch (actionKey.toLowerCase()) {
+            case "lastname" -> actionValue = tokens.get(index + 3);
+            case "id", "age" -> actionValue = Long.parseLong(tokens.get(index + 3));
+            case "cost" -> actionValue = Double.parseDouble(tokens.get(index + 3));
+            case "active" ->
+                    actionValue = !Objects.equals(tokens.get(index + 3), "null") ? Boolean.valueOf(tokens.get(index + 3)) : "null";
+        }
+        actionOperator = tokens.get(index + 2);
+        keys.add(List.of(actionKey, actionOperator, Objects.requireNonNull(actionValue)));
     }
 
     private void extractOldCol(Map<String, Object> row) {
@@ -163,6 +294,7 @@ public class JavaSchoolStarter {
     private void updateCol(List<String> tokens) {
         for (int i = 2; i < tokens.size(); i++) {
             String item = tokens.get(i);
+            if (item.equalsIgnoreCase("WHERE")) break;
             switch (item.toLowerCase()) {
                 case "lastname" -> lastname = tokens.get(i + 2);
                 case "id" -> id = Long.parseLong(tokens.get(i + 2));
@@ -182,15 +314,58 @@ public class JavaSchoolStarter {
     }
 
     private void deleteWithWhere(List<String> tokens) {
-        Map<String, Object> actionKey = extractActionKey(tokens);
-        for (Map<String, Object> row : table) {
-            for (Map.Entry<String, Object> actions : actionKey.entrySet()) {
-                String key = actions.getKey();
-                Object value = actions.getValue();
-                if (row.containsKey(key) && Objects.equals(row.get(key), value)) {
-                    table.remove(row);
+        List<List<Object>> actionKeys = extractActionKey(tokens);
+
+        if (!tokens.contains("AND") && !tokens.contains("OR")) {
+            simpleDelete(actionKeys);
+        } else if (tokens.contains("AND")) {
+            andDelete(actionKeys);
+        } else if (tokens.contains("OR")) {
+            orDelete(actionKeys);
+        }
+    }
+
+    private void orDelete(List<List<Object>> actionKeys) {
+        for (List<Object> actionKey : actionKeys) {
+            if (!actionKey.get(0).equals("AND") && !actionKey.get(0).equals("OR")) {
+                table.removeIf(row -> compareRow(row, actionKey));
+            }
+        }
+    }
+
+    private void andDelete(List<List<Object>> actionKeys) {
+        boolean flag = false;
+        int index = 0;
+        while (table.size() > index) {
+            Map<String, Object> row = table.get(index);
+            for (List<Object> actionKey : actionKeys) {
+                if (!actionKey.get(0).equals("AND") && !actionKey.get(0).equals("OR")) {
+                    if (compareRow(row, actionKey) && !flag) {
+                        flag = true;
+                    } else if (compareRow(row, actionKey) && flag) {
+                        table.remove(row);
+                        flag = false;
+                    } else {
+                        index++;
+                        flag = false;
+                    }
                 }
             }
+        }
+    }
+
+    private void simpleDelete(List<List<Object>> actionKeys) {
+        int index = 0;
+        while (table.size() > index) {
+            Map<String, Object> row = table.get(index);
+            for (List<Object> actionKey : actionKeys) {
+                if (compareRow(row, actionKey)) {
+                    table.remove(row);
+                } else {
+                    index++;
+                }
+            }
+
         }
     }
 
@@ -209,18 +384,58 @@ public class JavaSchoolStarter {
     }
 
     private List<Map<String, Object>> selectWithWhere(List<String> tokens) {
-        Map<String, Object> actionKey = extractActionKey(tokens);
+        List<List<Object>> actionKeys = extractActionKey(tokens);
         List<Map<String, Object>> selectTable = new ArrayList<>();
-        for (Map.Entry<String, Object> keys : actionKey.entrySet()) {
-            String key = keys.getKey();
-            Object value = keys.getValue();
-            for (Map<String, Object> row : table) {
-                if (row.containsKey(key) && Objects.equals(row.get(key), value)) { //ошибка стравнения двух строк с разным регистром
+
+        if (!tokens.contains("AND") && !tokens.contains("OR")) {
+            simpleSelect(actionKeys, selectTable);
+        } else if (tokens.contains("AND")) {
+            andSelect(actionKeys, selectTable);
+        } else if (tokens.contains("OR")) {
+            orSelect(actionKeys, selectTable);
+        }
+        return selectTable;
+    }
+
+    private void orSelect(List<List<Object>> actionKeys, List<Map<String, Object>> selectTable) {
+        for (List<Object> actionKey : actionKeys) {
+            if (!actionKey.get(0).equals("AND") && !actionKey.get(0).equals("OR")) {
+                for (Map<String, Object> row : table) {
+                    if (compareRow(row, actionKey)) {
+                        selectTable.add(row);
+                    }
+                }
+            }
+        }
+    }
+
+    private void andSelect(List<List<Object>> actionKeys, List<Map<String, Object>> selectTable) {
+        for (Map<String, Object> row : table) {
+            for (List<Object> actionKey : actionKeys) {
+                if (!actionKey.get(0).equals("AND") && !actionKey.get(0).equals("OR")) {
+                    if (compareRow(row, actionKey) && !selectTable.contains(row)) {
+                        selectTable.add(row);
+                    } else if (compareRow(row, actionKey) || selectTable.contains(row)) {
+                        if (selectTable.contains(row) && compareRow(row, actionKey)) {
+                            selectTable.remove(row);
+                            selectTable.add(row);
+                        } else {
+                            selectTable.remove(row);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void simpleSelect(List<List<Object>> actionKeys, List<Map<String, Object>> selectTable) {
+        for (Map<String, Object> row : table) {
+            for (List<Object> actionKey : actionKeys) {
+                if (compareRow(row, actionKey)) {
                     selectTable.add(row);
                 }
             }
         }
-        return selectTable;
     }
 
     private List<Map<String, Object>> selectWithoutWhere() {
@@ -275,7 +490,7 @@ public class JavaSchoolStarter {
         return getItems(request, regex);
     }
 
-    private List<String> extractSearchItems(String request){
+    private List<String> extractSearchItems(String request) {
         String regex = "(%[A-Za-zА-Яа-я]*.|[A-Za-zА-Яа-я]*%)";
         return getItems(request, regex);
     }
@@ -290,4 +505,5 @@ public class JavaSchoolStarter {
         }
         return tokensColumnNames;
     }
+
 }

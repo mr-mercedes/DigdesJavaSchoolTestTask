@@ -131,7 +131,6 @@ public class Util {
     }
 
     private Boolean customerEquals(String key, Object rowValue, Object compareValue, String operator) {
-//        if (rowValue == null || compareValue == "null") return false;
         boolean compare = false;
 
         switch (key.toLowerCase()) {

@@ -21,11 +21,16 @@ public class Util {
             String item = tokens.get(i);
             if (item.equalsIgnoreCase("WHERE")) break;
             switch (item.toLowerCase()) {
-                case "lastname" -> Table.setLastname(tokens.get(i + 2));
-                case "id" -> Table.setId(Long.parseLong(tokens.get(i + 2)));
-                case "age" -> Table.setAge(Long.parseLong(tokens.get(i + 2)));
-                case "cost" -> Table.setCost(Double.parseDouble(tokens.get(i + 2)));
-                case "active" -> Table.setActive(Boolean.valueOf(tokens.get(i + 2)));
+                case "lastname" -> Table.setLastname(tokens.get(i + 2).equalsIgnoreCase("null") ? null :
+                        tokens.get(i + 2));
+                case "id" -> Table.setId(tokens.get(i + 2).equalsIgnoreCase("null") ? null :
+                        Long.parseLong(tokens.get(i + 2)));
+                case "age" -> Table.setAge(tokens.get(i + 2).equalsIgnoreCase("null") ? null :
+                        Long.parseLong(tokens.get(i + 2)));
+                case "cost" -> Table.setCost(tokens.get(i + 2).equalsIgnoreCase("null") ? null :
+                        Double.parseDouble(tokens.get(i + 2)));
+                case "active" -> Table.setActive(Boolean.valueOf(tokens.get(i + 2).equalsIgnoreCase("null") ? null :
+                        tokens.get(i + 2)));
             }
         }
     }
@@ -125,7 +130,8 @@ public class Util {
         }
     }
 
-    private Boolean customerEquals(String key, Object rowValue, Object compareValue, String operator) { //поправить операторы
+    private Boolean customerEquals(String key, Object rowValue, Object compareValue, String operator) {
+//        if (rowValue == null || compareValue == "null") return false;
         boolean compare = false;
 
         switch (key.toLowerCase()) {
@@ -133,6 +139,9 @@ public class Util {
                 switch (operator) {
                     case "=", "!=" -> compare = String.valueOf(rowValue).equalsIgnoreCase(String.valueOf(compareValue));
                     case "LIKE", "ILIKE" -> compare = compareLike(rowValue, compareValue, operator);
+                    case "<", ">", ">=", "<=" ->
+                            throw new RuntimeException("Error SQL syntax: unsupported operation with String: " + operator);
+
                 }
             }
             case "id", "age" -> {
@@ -145,6 +154,9 @@ public class Util {
                     case "!=" -> compare = !Objects.equals(rowValue, compareValue);
                     case "<" -> compare = (Long) rowValue < (Long) compareValue;
                     case ">" -> compare = (Long) rowValue > (Long) compareValue;
+                    case "LIKE", "ILIKE" ->
+                            throw new RuntimeException("Error SQL syntax: unsupported operation with Long: " + operator);
+
                 }
             }
             case "cost" -> {
@@ -157,13 +169,21 @@ public class Util {
                     case "!=" -> compare = !Objects.equals(rowValue, compareValue);
                     case "<" -> compare = (Double) rowValue < (Double) compareValue;
                     case ">" -> compare = (Double) rowValue > (Double) compareValue;
+                    case "LIKE", "ILIKE" ->
+                            throw new RuntimeException("Error SQL syntax: unsupported operation with Double: " + operator);
+
                 }
             }
             case "active" -> {
                 if (compareValue.equals("null") || rowValue.equals("null")) {
                     return compareValue.equals("null") && rowValue == "null";
                 }
-                compare = Boolean.compare((Boolean) rowValue, (Boolean) compareValue) == 0;
+
+                switch (operator) {
+                    case "=", "!=" -> compare = Boolean.compare((Boolean) rowValue, (Boolean) compareValue) == 0;
+                    case "<", ">", ">=", "<=", "LIKE", "ILIKE" ->
+                            throw new RuntimeException("Error SQL syntax: unsupported operation with Boolean: " + operator);
+                }
             }
         }
         return compare;

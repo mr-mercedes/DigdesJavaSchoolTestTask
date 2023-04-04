@@ -6,13 +6,7 @@ import java.util.regex.Pattern;
 
 
 public class JavaSchoolStarter {
-    private final List<Map<String, Object>> table = new ArrayList<>();
-
-    private Long id;
-    private String lastname;
-    private Double cost;
-    private Long age;
-    private Boolean active;
+    private final Table table = new Table();
 
     public JavaSchoolStarter() {
     }
@@ -30,7 +24,7 @@ public class JavaSchoolStarter {
             }
             default -> throw new RuntimeException("Unknown operation " + operation);
         }
-        return table;
+        return table.getTable();
     }
 
     private void insert(List<String> tokens) {
@@ -38,7 +32,7 @@ public class JavaSchoolStarter {
             throw new RuntimeException("Error SQL syntax: INSERT operation expected VALUES");
         createRow(tokens);
         Map<String, Object> newRow = fillRow();
-        table.add(newRow);
+        table.getTable().add(newRow);
     }
 
     private void createRow(List<String> tokens) {
@@ -48,11 +42,11 @@ public class JavaSchoolStarter {
 
     private Map<String, Object> fillRow() {
         Map<String, Object> newRow = new HashMap<>();
-        newRow.put("id", id);
-        newRow.put("lastName", lastname);
-        newRow.put("age", age);
-        newRow.put("cost", cost);
-        newRow.put("active", active);
+        newRow.put("id", table.getId());
+        newRow.put("lastName", table.getLastname());
+        newRow.put("age", table.getAge());
+        newRow.put("cost", table.getCost());
+        newRow.put("active", table.getActive());
         return newRow;
     }
 
@@ -68,12 +62,12 @@ public class JavaSchoolStarter {
 
     private void updateWithoutWhere(List<String> tokens) {
         int index = 0;
-        while (table.size() > index) {
-            Map<String, Object> row = table.get(index);
+        while (table.getTable().size() > index) {
+            Map<String, Object> row = table.getTable().get(index);
             updateRow(tokens, row);
             Map<String, Object> updateRow = fillRow();
-            table.remove(index);
-            table.add(index, updateRow);
+            table.getTable().remove(index);
+            table.getTable().add(index, updateRow);
             index++;
         }
     }
@@ -99,8 +93,8 @@ public class JavaSchoolStarter {
     private void orUpdate(List<List<Object>> updateKeys, List<String> tokens) {
         boolean flag = false;
         int index = 0;
-        while (table.size() > index) {
-            Map<String, Object> row = table.get(index);
+        while (table.getTable().size() > index) {
+            Map<String, Object> row = table.getTable().get(index);
             for (List<Object> keys : updateKeys) {
                 if (!keys.get(0).equals("AND") && !keys.get(0).equals("OR")) {
                     Boolean compareRow = compareRow(row, keys);
@@ -119,8 +113,8 @@ public class JavaSchoolStarter {
     private void andUpdate(List<List<Object>> updateKeys, List<String> tokens) {
         boolean flag = false;
         int index = 0;
-        while (table.size() > index) {
-            Map<String, Object> row = table.get(index);
+        while (table.getTable().size() > index) {
+            Map<String, Object> row = table.getTable().get(index);
             for (List<Object> keys : updateKeys) {
                 if (!keys.get(0).equals("AND") && !keys.get(0).equals("OR")) {
                     if (compareRow(row, keys) && !flag) {
@@ -145,23 +139,23 @@ public class JavaSchoolStarter {
         boolean flag = false;
         updateRow(tokens, row);
         Map<String, Object> updateRow = fillRow();
-        table.remove(index);
-        table.add(index, updateRow);
+        table.getTable().remove(index);
+        table.getTable().add(index, updateRow);
         return flag;
     }
 
     private void simpleUpdate(List<List<Object>> updateKeys, List<String> tokens) {
         int index = 0;
         if (!tokens.contains("AND") && !tokens.contains("OR")) {
-            while (table.size() > index) {
-                Map<String, Object> row = table.get(index);
+            while (table.getTable().size() > index) {
+                Map<String, Object> row = table.getTable().get(index);
                 for (List<Object> keys : updateKeys) {
                     Boolean compareRow = compareRow(row, keys);
                     if (compareRow) {
                         updateRow(tokens, row);
                         Map<String, Object> updateRow = fillRow();
-                        table.remove(index);
-                        table.add(index, updateRow);
+                        table.getTable().remove(index);
+                        table.getTable().add(index, updateRow);
                     }
                 }
                 index++;
@@ -326,11 +320,11 @@ public class JavaSchoolStarter {
             String key = entry.getKey();
             Object value = entry.getValue();
             switch (key.toLowerCase()) {
-                case "lastname" -> lastname = (String) value;
-                case "id" -> id = (Long) value;
-                case "age" -> age = (Long) value;
-                case "cost" -> cost = (Double) value;
-                case "active" -> active = (Boolean) value;
+                case "lastname" -> table.setLastname((String) value);
+                case "id" -> table.setId((Long) value);
+                case "age" -> table.setAge((Long) value);
+                case "cost" -> table.setCost((Double) value);
+                case "active" -> table.setActive((Boolean) value);
             }
         }
     }
@@ -340,11 +334,11 @@ public class JavaSchoolStarter {
             String item = tokens.get(i);
             if (item.equalsIgnoreCase("WHERE")) break;
             switch (item.toLowerCase()) {
-                case "lastname" -> lastname = tokens.get(i + 2);
-                case "id" -> id = Long.parseLong(tokens.get(i + 2));
-                case "age" -> age = Long.parseLong(tokens.get(i + 2));
-                case "cost" -> cost = Double.parseDouble(tokens.get(i + 2));
-                case "active" -> active = Boolean.valueOf(tokens.get(i + 2));
+                case "lastname" -> table.setLastname(tokens.get(i + 2));
+                case "id" -> table.setId(Long.parseLong(tokens.get(i + 2)));
+                case "age" -> table.setAge(Long.parseLong(tokens.get(i + 2)));
+                case "cost" -> table.setCost(Double.parseDouble(tokens.get(i + 2)));
+                case "active" -> table.setActive(Boolean.valueOf(tokens.get(i + 2)));
             }
         }
     }
@@ -372,7 +366,7 @@ public class JavaSchoolStarter {
     private void orDelete(List<List<Object>> actionKeys) {
         for (List<Object> actionKey : actionKeys) {
             if (!actionKey.get(0).equals("AND") && !actionKey.get(0).equals("OR")) {
-                table.removeIf(row -> compareRow(row, actionKey));
+                table.getTable().removeIf(row -> compareRow(row, actionKey));
             }
         }
     }
@@ -380,14 +374,14 @@ public class JavaSchoolStarter {
     private void andDelete(List<List<Object>> actionKeys) {
         boolean flag = false;
         int index = 0;
-        while (table.size() > index) {
-            Map<String, Object> row = table.get(index);
+        while (table.getTable().size() > index) {
+            Map<String, Object> row = table.getTable().get(index);
             for (List<Object> actionKey : actionKeys) {
                 if (!actionKey.get(0).equals("AND") && !actionKey.get(0).equals("OR")) {
                     if (compareRow(row, actionKey) && !flag) {
                         flag = true;
                     } else if (compareRow(row, actionKey) && flag) {
-                        table.remove(row);
+                        table.getTable().remove(row);
                         flag = false;
                     } else {
                         index++;
@@ -400,11 +394,11 @@ public class JavaSchoolStarter {
 
     private void simpleDelete(List<List<Object>> actionKeys) {
         int index = 0;
-        while (table.size() > index) {
-            Map<String, Object> row = table.get(index);
+        while (table.getTable().size() > index) {
+            Map<String, Object> row = table.getTable().get(index);
             for (List<Object> actionKey : actionKeys) {
                 if (compareRow(row, actionKey)) {
-                    table.remove(row);
+                    table.getTable().remove(row);
                 } else {
                     index++;
                 }
@@ -413,7 +407,7 @@ public class JavaSchoolStarter {
     }
 
     private void deleteWithoutWhere() {
-        table.clear();
+        table.getTable().clear();
     }
 
     private List<Map<String, Object>> select(List<String> tokens) {
@@ -443,7 +437,7 @@ public class JavaSchoolStarter {
     private void orSelect(List<List<Object>> actionKeys, List<Map<String, Object>> selectTable) {
         for (List<Object> actionKey : actionKeys) {
             if (!actionKey.get(0).equals("AND") && !actionKey.get(0).equals("OR")) {
-                for (Map<String, Object> row : table) {
+                for (Map<String, Object> row : table.getTable()) {
                     if (compareRow(row, actionKey)) {
                         selectTable.add(row);
                     }
@@ -453,7 +447,7 @@ public class JavaSchoolStarter {
     }
 
     private void andSelect(List<List<Object>> actionKeys, List<Map<String, Object>> selectTable) {
-        for (Map<String, Object> row : table) {
+        for (Map<String, Object> row : table.getTable()) {
             for (List<Object> actionKey : actionKeys) {
                 if (!actionKey.get(0).equals("AND") && !actionKey.get(0).equals("OR")) {
                     if (compareRow(row, actionKey) && !selectTable.contains(row)) {
@@ -472,7 +466,7 @@ public class JavaSchoolStarter {
     }
 
     private void simpleSelect(List<List<Object>> actionKeys, List<Map<String, Object>> selectTable) {
-        for (Map<String, Object> row : table) {
+        for (Map<String, Object> row : table.getTable()) {
             for (List<Object> actionKey : actionKeys) {
                 if (compareRow(row, actionKey)) {
                     selectTable.add(row);
@@ -482,7 +476,7 @@ public class JavaSchoolStarter {
     }
 
     private List<Map<String, Object>> selectWithoutWhere() {
-        return table;
+        return table.getTable();
     }
 
     private List<String> getTokens(String request) {
@@ -504,11 +498,11 @@ public class JavaSchoolStarter {
     }
 
     private void clearOldData() {
-        id = null;
-        lastname = null;
-        age = null;
-        cost = null;
-        active = null;
+        table.setId(null);
+        table.setLastname(null);
+        table.setAge(null);
+        table.setCost(null);
+        table.setActive(null);
     }
 
     private void checkColumnName(String request) {
@@ -527,11 +521,6 @@ public class JavaSchoolStarter {
         String regex = "('[A-Za-z']+)";
         return getItems(request, regex);
     }
-
-//    private List<String> extractLikeItems(String request) {
-//        String regex = "(%[A-Za-zА-Яа-я]*.|[A-Za-zА-Яа-я]*%)";
-//        return getItems(request, regex);
-//    }
 
     private List<String> getItems(String request, String regex) {
         Pattern pattern = Pattern.compile(regex);

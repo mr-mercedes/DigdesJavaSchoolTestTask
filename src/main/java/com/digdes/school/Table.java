@@ -5,65 +5,60 @@ import java.util.List;
 import java.util.Map;
 
 public class Table {
-    private List<Map<String, Object>> table = new ArrayList<>();
-
-    private Long id;
-    private String lastname;
-    private Double cost;
-    private Long age;
-    private Boolean active;
+    protected static final List<Map<String, Object>> TABLE = new ArrayList<>();
+    private static Long id;
+    private static String lastname;
+    private static Double cost;
+    private static Long age;
+    private static Boolean active;
 
     public Table() {
     }
 
-    public List<Map<String, Object>> getTable() {
-        return table;
-    }
-
-    public Long getId() {
+    public static Long getId() {
         return id;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public static void setId(Long id) {
+        Table.id = id;
     }
 
-    public String getLastname() {
+    public static String getLastname() {
         return lastname;
     }
 
-    public void setLastname(String lastname) {
-        this.lastname = lastname;
+    public static void setLastname(String lastname) {
+        Table.lastname = lastname;
     }
 
-    public Double getCost() {
+    public static Double getCost() {
         return cost;
     }
 
-    public void setCost(Double cost) {
-        this.cost = cost;
+    public static void setCost(Double cost) {
+        Table.cost = cost;
     }
 
-    public Long getAge() {
+    public static Long getAge() {
         return age;
     }
 
-    public void setAge(Long age) {
-        this.age = age;
+    public static void setAge(Long age) {
+        Table.age = age;
     }
 
-    public Boolean getActive() {
+    public static Boolean getActive() {
         return active;
     }
 
-    public void setActive(Boolean active) {
-        this.active = active;
+    public static void setActive(Boolean active) {
+        Table.active = active;
     }
 
     @Override
     public String toString() {
         return "Table{" +
-                "table=" + table +
+                "table=" + TABLE +
                 ", id=" + id +
                 ", lastname='" + lastname + '\'' +
                 ", cost=" + cost +

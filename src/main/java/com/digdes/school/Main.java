@@ -9,7 +9,7 @@ public class Main {
         try {
             //Вставка строки в коллекцию
             List<Map<String, Object>> result1 = starter.execute("INSERT VALUES 'lastName' = 'Федоров' , 'id'=3, 'age'=15, 'active'=true");
-            List<Map<String, Object>> updateOr = starter.execute("UPDATE VALUES 'age'=10 where 'id'=3 or 'cost'=11");
+            List<Map<String, Object>> updateOr = starter.execute("UPDATE VALUES 'cost'=10 where 'id'=3 or 'cost'=11");
 
             List<Map<String, Object>> result2 = starter.execute("INSERT VALUES 'lastName' = 'Иванов' , 'id'=2, 'age'=40, 'cost'=13");
             List<Map<String, Object>> updateOr2 = starter.execute("UPDATE VALUES 'active'=false where 'id'=3 or 'active'=null");

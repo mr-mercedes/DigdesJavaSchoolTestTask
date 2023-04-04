@@ -192,7 +192,7 @@ public class JavaSchoolStarter {
 
     private Boolean compareOperators(String actionOperator) {
         switch (actionOperator) {
-            case "<=", ">=", "!=", "<", ">" -> {
+            case "<=", ">=", "!=", "<", ">", "LIKE", "ILIKE" -> {
                 return true;
             }
             case "=" -> {
@@ -203,11 +203,16 @@ public class JavaSchoolStarter {
         }
     }
 
-    private Boolean customerEquals(String key, Object rowValue, Object compareValue, String operator) {
+    private Boolean customerEquals(String key, Object rowValue, Object compareValue, String operator) { //поправить операторы
         boolean compare = false;
 
         switch (key.toLowerCase()) {
-            case "lastname" -> compare = String.valueOf(rowValue).equalsIgnoreCase(String.valueOf(compareValue));
+            case "lastname" -> {
+                switch (operator) {
+                    case "=", "!=" -> compare = String.valueOf(rowValue).equalsIgnoreCase(String.valueOf(compareValue));
+                    case "LIKE","ILIKE" -> compare = compareLike(rowValue, compareValue, operator);
+                }
+            }
             case "id", "age" -> {
                 rowValue = rowValue != null ? (Long) rowValue : 0L;
                 compareValue = compareValue != null ? (Long) compareValue : 0L;
@@ -240,6 +245,45 @@ public class JavaSchoolStarter {
             }
         }
         return compare;
+    }
+
+    private boolean compareLike(Object rowValue, Object compareValue, String operator) {
+        String rowVal;
+        String compVal;
+
+        if (operator.equalsIgnoreCase("LIKE")) {
+            rowVal = String.valueOf(rowValue);
+            compVal = String.valueOf(compareValue);
+        } else {
+            rowVal = String.valueOf(rowValue).toLowerCase();
+            compVal = String.valueOf(compareValue).toLowerCase();
+        }
+
+        char firstSymbol = compVal.charAt(0);
+        char lastSymbol = compVal.charAt(compVal.length() - 1);
+        String substring = compVal.substring(1, compVal.length() - 1);
+
+        if (!compVal.contains("%")){
+            return rowVal.equals(compVal);
+        } else {
+            if (firstSymbol == '%' && lastSymbol == '%'){
+                String regex = "[A-Za-zА-Яа-я]*"+ substring +"[A-Za-zА-Яа-я]*";
+                return patternCompare(rowVal, regex);
+            } else if (firstSymbol == '%') {
+                String regex = "[A-Za-zА-Яа-я]*"+ substring;
+                return patternCompare(rowVal, regex);
+            } else if (lastSymbol == '%') {
+                String regex = substring + "[A-Za-zА-Яа-я]*";
+                return patternCompare(rowVal, regex);
+            }
+        }
+        return false;
+    }
+
+    private static boolean patternCompare(String rowVal, String regex) {
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(rowVal);
+        return matcher.matches();
     }
 
 
@@ -365,7 +409,6 @@ public class JavaSchoolStarter {
                     index++;
                 }
             }
-
         }
     }
 
@@ -444,15 +487,9 @@ public class JavaSchoolStarter {
 
     private List<String> getTokens(String request) {
         checkColumnName(request);
-        String regex = "([A-Za-z_.0-9]+)|([А-Яа-я_.0-9]+)|([0-9])|(=|!=|<=|>=|>|<)";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(request);
-        List<String> tokens = new ArrayList<>();
+        String regex = "([A-Za-z_.0-9]+)|([А-Яа-я_.0-9]+)|([0-9])|(=|!=|<=|>=|>|<)|(%[A-Za-zА-Яа-я]*.|[A-Za-zА-Яа-я]*%)";
 
-        while (matcher.find()) {
-            tokens.add(convertOperators(matcher.group()));
-        }
-        return tokens;
+        return getItems(request, regex);
     }
 
     private String convertOperators(String token) {
@@ -477,6 +514,7 @@ public class JavaSchoolStarter {
     private void checkColumnName(String request) {
         List<String> trueColumnNames = Arrays.asList("id", "cost", "age", "active", "lastname");
         List<String> tokensColumnNames = extractColumnNames(request);
+
         for (String token : tokensColumnNames) {
             String tokenColumnName = token.substring(1, token.length() - 1);
             if (!trueColumnNames.contains(tokenColumnName.toLowerCase())) {
@@ -490,10 +528,10 @@ public class JavaSchoolStarter {
         return getItems(request, regex);
     }
 
-    private List<String> extractSearchItems(String request) {
-        String regex = "(%[A-Za-zА-Яа-я]*.|[A-Za-zА-Яа-я]*%)";
-        return getItems(request, regex);
-    }
+//    private List<String> extractLikeItems(String request) {
+//        String regex = "(%[A-Za-zА-Яа-я]*.|[A-Za-zА-Яа-я]*%)";
+//        return getItems(request, regex);
+//    }
 
     private List<String> getItems(String request, String regex) {
         Pattern pattern = Pattern.compile(regex);
@@ -501,7 +539,7 @@ public class JavaSchoolStarter {
 
         List<String> tokensColumnNames = new ArrayList<>();
         while (matcher.find()) {
-            tokensColumnNames.add(matcher.group());
+            tokensColumnNames.add(convertOperators(matcher.group()));
         }
         return tokensColumnNames;
     }

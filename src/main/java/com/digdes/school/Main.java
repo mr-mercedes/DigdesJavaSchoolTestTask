@@ -24,11 +24,12 @@ public class Main {
             List<Map<String, Object>> updateAll = starter.execute("UPDATE VALUES 'cost' = 111");
             //Изменение значения которое выше записывали
 
-//            List<Map<String, Object>> result5 = starter.execute("UPDATE VALUES 'active'=false, 'cost'=99 where 'age'=20");
+            List<Map<String, Object>> select2 = starter.execute("SELECT WHERE ‘age’>=30 and ‘lastName’ ilike ‘%а%’");
+            List<Map<String, Object>> select3 = starter.execute("SELECT WHERE ‘lastName’ ilike ‘%р%’");
+            List<Map<String, Object>> update2 = starter.execute("UPDATE VALUES 'active'=false, 'cost'=99 where 'age'=20");
 //            List<Map<String, Object>> result6 = starter.execute("UPDATE VALUES 'age'=10, 'active'=true where 'lastNAME' = 'Сидоров'");
 //            List<Map<String, Object>> update = starter.execute("UPDATE VALUES 'cost'=999");
             //Получение всех данных из коллекции (т.е. в данном примере вернется 1 запись)
-            //List<Map<String, Object>> result9 = starter.execute("SELECT WHERE ‘age’>=30 and ‘lastName’ ilike like or <= != < >");
         } catch (Exception ex) {
             ex.printStackTrace();
         }
